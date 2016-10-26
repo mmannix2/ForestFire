@@ -6,3 +6,6 @@ all: $(TARGET)
 
 $(TARGET):
 	$(CC) $(CFLAGS) $(TARGET).c -o $(TARGET)
+
+clean:
+	rm $(TARGET)
