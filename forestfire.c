@@ -17,6 +17,7 @@ int main(int argc, char** argv) {
     int gen;
     double ignition, growth;  
     struct Forest;
+    FILE* file;
 
     //Setup MPI
     MPI_Init(&argc, &argv);
@@ -50,7 +51,17 @@ int main(int argc, char** argv) {
     #endif
     
     //Read in the file
+    file = fopen(argv[1], "r");
     
+    char* temp;
+
+    for(int row = 0; row < WIDTH; row++) {
+        for(int col = 0; col < HEIGHT; col++) {
+            fscanf(argv[1], "%c", temp);
+            printf("%c", *temp);
+        }
+    }
+
     //Print first generation
     if(rank == 0) {
         printf("First generation:\n");
