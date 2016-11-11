@@ -6,6 +6,7 @@
 #define FIRE 'X'
 #define SPACE ' '
 #define BORDER '%'
+#define NUM_CELL_TYPES 4
 
 #define WIDTH 82    //80 cols + 1 Border left and right
 #define HEIGHT 42   //60 rows + 1 Border above and below
@@ -16,109 +17,94 @@
 
 #define DEBUG
 
+//enum Cell { BORDER = (int)'%', TREE = (int)'T', FIRE = (int)'X', SPACE = (int)' ' };
+
 /*
+const char BORDER = '%';    //-> 0
+const char TREE = 'T';      //-> 1
+const char FIRE = 'X';      //-> 2
+const char SPACE = ' ';     //-> 3
+*/
+
+int charToIndex(char c) {
+    switch(c) {
+        case (int)BORDER:
+            return 0;
+        case (int)TREE:
+            return 1;
+        case (int)FIRE:
+            return 2;
+        case (int)SPACE:
+            return 3;
+        default:
+            return -1;
+    }
+}   
+
 //Requires the acual row and col numbers
-void neighborCount(int* count, char condition, int row, int col) {
-    int code  = 0;
+int* neighborCount(int* count, int* nextCount, char* cell) {
+    char* ptr = cell;
     
-    //Reset counter
-    *count = 0;
-    
-    //Above and below
-    if(row == 0 ) {
-        //Don't check above
-        code += 1;
+    if(nextCount != NULL) {
+        //There are old values that we can use
+        for(int i = 0; i < NUM_CELL_TYPES; i++) {
+            count[i] = nextCount[i];
+        }
+        //Reset nextCount
+        for(int i = 0; i < NUM_CELL_TYPES; i++) {
+            nextCount[i] = 0;
+        }
         
-    }
-    else if(row == HEIGHT-1 ) {
-        //Don't check below
-        code += 8;
-    }
-    
-    //Left and right
-    if(col == WIDTH-1) {
-        //Don't check right
-        code += 2;
-    }
-    else if(col == 0) {
-        //Don't check left
-        code += 4;
-    }
-    
-    switch(code) {
-        case 0:
-
-        case 1:
-
-        case 3:
-        case 5:
+        printf("nextCount is not NULL.\n");
         
-        case 2:
-        case 4:
-
-        case 8:
-        
-        case 10:
-        case 12:
-    }
-    
-    if(code % 2 != 0) {
-        //Bottom
-        
+        //Subtract cell from count
+        printf("Removing cell.\n");
+        count[charToIndex(*ptr)]--; 
+        //Add the previous cell to count
+        printf("Adding the previous cell.\n");
+        count[charToIndex(*(ptr-1))]++; 
     }
     else {
-        //Top is blocked
+        //Reset count
+        for(int i = 0; i < NUM_CELL_TYPES; i++) {
+            count[i] = 0;
+        }
         
-    }
-}
-*/
+        //Allocate space for nextCount
+        nextCount = malloc(sizeof(int) * NUM_CELL_TYPES);
+        
+        //Reset nextCount
+        for(int i = 0; i < NUM_CELL_TYPES; i++) {
+            nextCount[i] = 0;
+        }
 
-/*
-void printForest(char forest[HEIGHT][WIDTH]) {
-    #ifdef DEBUG
-    //Print column number
-    printf("   ");
-    for(int i = 0; i < COL_END/10; i++) {
-        for(int j = 0; j < 10; j++) {
-            printf("%d", i);
-        }
-    }
-    printf("\n");
-    printf("   ");
-    for(int i = 0; i < COL_END/10; i++) {
-        for(int j = 0; j < 10; j++) {
-            printf("%d", j);
-        }
-    }
-    printf("\n");
-    #endif
-    
-    //Print the actual data
-    for(int row = ROW_START; row <= ROW_END; row++) {
-        #ifdef DEBUG
-        printf("%02d_", row);
-        #endif
-        //printf("%s\n", forest[row]);
+        printf("nextCount is NULL.\n");
         
-        for(int col = COL_START; col <= COL_END; col++) {
-            if(col == COL_START || col == COL_END) {
-                printf(" (%02d, %02d)", row, col);
-            }
-            //Print the char
-            if( forest[row][col] == TREE ||
-                forest[row][col] == FIRE ||
-                forest[row][col] == SPACE ) {
-                printf("%c", forest[row][col]);
-            }
-            //This should never appear
-            else {
-                printf("?");
-            }
+        //Check the col to the left of cell
+        for(int row = -1; row < 2; row++) {
+            printf("Checking (%d,-1) = %c\n", row, *(ptr - 1 + (WIDTH*row)));
+            count[charToIndex(*(ptr - 1 + (WIDTH * row)))]++;            
         }
-        printf("\n");
+        
+        //Check above and below cell, but not cell itself
+        printf("Checking (-1,0) = %c\n", *(ptr-WIDTH));
+        printf("Checking (1,0) = %c\n", *(ptr+WIDTH));
+        //Add to count
+        count[charToIndex(*(ptr - WIDTH))]++; //Check cell above
+        count[charToIndex(*(ptr + WIDTH))]++; //Check cell below
+        //Add to nextCount
+        nextCount[charToIndex(*(ptr - WIDTH))]++; //Check cell above
+        nextCount[charToIndex(*(ptr + WIDTH))]++; //Check cell below
     }
+    //Check the col to the right of cell
+    for(int row = -1; row < 2; row++) {
+        printf("Checking (%d,1) = %c\n", row, *(ptr + 1 + (WIDTH*row)));
+        count[charToIndex(*(ptr + 1 + (WIDTH * row)))]++;            
+        nextCount[charToIndex(*(ptr + 1 + (WIDTH * row)))]++;            
+    }
+    
+    return nextCount;
 }
-*/
 
 void printForest(char forest[HEIGHT][WIDTH]) {
     for(int row = 0; row < HEIGHT; row++) {
@@ -219,7 +205,40 @@ int main(int argc, char** argv) {
 
     //Make newForest
     char newForest [NUM_ROWS][WIDTH];
-    
+   
+    //Test
+    if(rank == 0) {
+        printf("\n");
+        int count[4] = {0,0,0,0};
+        int* nextCount = NULL;
+
+        printf("%c -> %d\n", BORDER, charToIndex(BORDER));
+        printf("%c -> %d\n", TREE, charToIndex(TREE));
+        printf("%c -> %d\n", FIRE, charToIndex(FIRE));
+        printf("%c -> %d\n", SPACE, charToIndex(SPACE));
+
+        nextCount = neighborCount(&count, NULL, &forest[1][1]);
+        
+        //Print count
+        for(int i = 0; i < NUM_CELL_TYPES; i++) {
+            printf("i:%d count[i]:%d\n", i , count[i]);
+        }
+        //Print nextCount
+        for(int i = 0; i < NUM_CELL_TYPES; i++) {
+            printf("i:%d nextCount[i]:%d\n", i , nextCount[i]);
+        }
+        
+        printf("Second call to neighborCount.\n");
+        neighborCount(&count, nextCount, &forest[1][2]);
+        printf("\n");
+        
+        //Print count
+        for(int i = 0; i < NUM_CELL_TYPES; i++) {
+            printf("i:%d count[i]:%d\n", i , count[i]);
+        }
+        
+    }
+
     #ifdef DEBUG
     //printf("Rank: %d [%d,%d).\n", rank, base, bound);
     #endif
