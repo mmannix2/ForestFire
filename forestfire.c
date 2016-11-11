@@ -6,17 +6,58 @@
 #define FIRE 'X'
 #define SPACE ' '
 
-struct Forest {
-    int height;
-    int width;
-    //char trees[width][height];
-};
+#define WIDTH 80
+#define HEIGHT 40
+
+#define DEBUG
+
+void printForest(char forest[HEIGHT][WIDTH]) {
+    #ifdef DEBUG
+    //Print column number
+    printf("   ");
+    for(int i = 0; i < WIDTH/10; i++) {
+        for(int j = 0; j < 10; j++) {
+            printf("%d", i);
+        }
+    }
+    printf("\n");
+    printf("   ");
+    for(int i = 0; i < WIDTH/10; i++) {
+        for(int j = 0; j < 10; j++) {
+            printf("%d", j);
+        }
+    }
+    printf("\n");
+    #endif
+    
+    //Print the actual data
+    for(int row = 0; row < HEIGHT; row++) {
+        #ifdef DEBUG
+        printf("%02d_", row);
+        #endif
+        //printf("%s\n", forest[row]);
+        
+        for(int col = 0; col < WIDTH; col++) {
+            //Print the char
+            if( forest[row][col] == TREE ||
+                forest[row][col] == FIRE ||
+                forest[row][col] == SPACE ) {
+                printf("%c", forest[row][col]);
+            }
+            //This should never appear
+            else {
+                printf("?");
+            }
+        }
+        printf("\n");
+    }
+}
 
 int main(int argc, char** argv) {
     int rank, size;
     int gen;
     double ignition, growth;  
-    struct Forest;
+    char forest [HEIGHT][WIDTH];
     FILE* file;
 
     //Setup MPI
@@ -50,22 +91,29 @@ int main(int argc, char** argv) {
     }
     #endif
     
-    //Read in the file
+    //Open the file for reading
     file = fopen(argv[1], "r");
-    
-    char* temp;
-
-    for(int row = 0; row < WIDTH; row++) {
-        for(int col = 0; col < HEIGHT; col++) {
-            fscanf(argv[1], "%c", temp);
-            printf("%c", *temp);
+    if(file != NULL) {
+        for(int row = 0; row < HEIGHT && !feof(file); row++) {
+            //Read a whole row at a time
+            fread(forest[row], sizeof(char), WIDTH, file);
+            fscanf(file, "\n");
         }
+        //Close the file
+        fclose(file);
+    }
+    else {
+        printf("Failed to open %s.\n", argv[1]);
+        //Bail out
+        fclose(file);
+        MPI_Finalize();
     }
 
     //Print first generation
     if(rank == 0) {
         printf("First generation:\n");
-        //Print it
+        //Print the forest
+        printForest(forest);
     }
     
     //Run the simulation
